@@ -1,0 +1,65 @@
+#!/bin/sh
+
+kaffeeapi="http://kaffee.fs-et.de/stats.php"
+
+get_coffee() {
+	interval=$1
+	get="?interval=$interval"
+	url="$kaffeeapi$get"
+	curl -sX 'GET' $url -H 'accept: application/json' |  sed -e 's/[{}]/''/g' | sed s/\"//g | awk -v RS=',' -F: '$1=="count"{print "consumption.value " $2}'
+}
+
+output_result() {
+	echo "multigraph coffee_hourly"
+	get_coffee "hour"
+	echo "multigraph coffee_daily"
+	get_coffee "day"
+}
+
+output_config() {
+	echo "multigraph coffee_hourly"
+	echo "graph_title Kaffee-Konsum im Stundenmittel"
+	echo "graph_info Anzahl an gebuchten Kaffees pro Stunde"
+	echo "graph_vlabel Kaffees"
+	echo "graph_args --base 1000"
+	echo "graph_category Kaffee"
+	echo "consumption.label Kaffee-Konsum pro Stunde"
+	echo "consumption.info Anzahl an gebuchten Kaffees pro Stunde"
+	echo "consumption.min 0"
+
+	echo "multigraph coffee_daily"
+	echo "graph_title Kaffee-Konsum im Tagesmittel"
+	echo "graph_info Anzahl an gebuchten Kaffees pro Tag"
+	echo "graph_vlabel Kaffees"
+	echo "graph_args --base 1000"
+	echo "graph_category Kaffee"
+	echo "consumption.label Kaffee-Konsum pro Tag"
+	echo "consumption.info Anzahl an gebuchten Kaffees pro Tag"
+	echo "consumption.min 0"
+}
+
+output_usage() {
+	printf >&2 "%s - munin plugin to graph the coffee consumption of desperate people using the FSET coffee system\n" ${0##*/}
+	printf >&2 "Usage: %s [config]\n" ${0##*/}
+}
+
+case $# in
+	0)
+		output_result
+		;;
+	1)
+		case $1 in
+			config)
+				output_config
+				;;
+			*)
+				output_usage
+				exit 1
+				;;
+		esac
+		;;
+	*)
+		output_usage
+		exit 1
+		;;
+esac
